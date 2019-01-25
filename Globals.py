@@ -11,6 +11,8 @@ TRAIN_NUM = 3303
 BATCH_SIZE = 32
 
 # LOG_DIR = 'flower_graph'
-TRAIN_LOG_DIR = 'train_log'
-PRE_CKPT = 'mobilenet_v1_0.5_224/mobilenet_v1_0.5_224.ckpt'
+TRAIN_LOG_DIR = 'log/train'
+TEST_LOG_DIR = 'log/test'
+PRE_0_5_CKPT = 'mobilenet_v1_0.5_224/mobilenet_v1_0.5_224.ckpt'
+PRE_1_0_CKPT = 'mobilenet_v1_1.0_224/mobilenet_v1_1.0_224.ckpt'
 NEW_CKPT_NAME = 'flower.ckpt'

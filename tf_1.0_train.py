@@ -19,7 +19,7 @@ def new_mobilenet(images: tf.Tensor, num_classes: int, is_training: bool):
     with tf.variable_scope('Flowers'):
         with slim.arg_scope([slim.conv2d],  padding='VALID', activation_fn=None, weights_initializer=slim.initializers.xavier_initializer_conv2d()):
             with slim.arg_scope([slim.batch_norm], activation_fn=tf.nn.relu6,  center=True, scale=True, decay=0.9997, epsilon=0.001):
-                # nets= [?,7,7,512]
+                # nets= [?,7,7,1024]
                 nets = slim.conv2d(nets, 256, (3, 3), stride=2)
                 nets = slim.batch_norm(nets)
                 # nets = [?,3,3,256]
@@ -64,5 +64,5 @@ if __name__ == "__main__":
                 for j in range(epochstep):
                     summary, _, losses, acc, _ = sess.run([merged, train_op, loss, accuracy, accuracy_op])
                     writer.add_summary(summary, i*epochstep+j)
-                    t.set_postfix(loss='{:^6.3f}'.format(losses), acc='{:^5.2}%'.format(acc))  # 修改此处添加后缀
+                    t.set_postfix(loss='{:^6.3f}'.format(losses), acc='{:5.2}%'.format(acc))  # 修改此处添加后缀
                     t.update()
