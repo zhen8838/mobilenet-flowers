@@ -33,13 +33,11 @@ def create_dataset(namelist, labelist, batchsize, parserfn):
     # create the dataset from the list
     dataset = tf.data.Dataset.from_tensor_slices((tf.constant(namelist), tf.constant(labelist)))
     # parser the data set
-    dataset = dataset.map(parserfn)
-    # set batch size
-    dataset = dataset.batch(batchsize)
+    dataset = dataset.apply(tf.data.experimental.map_and_batch(map_func=parserfn, batch_size=batchsize))
     # repeat
     dataset = dataset.repeat()
     # shuffle
-    dataset = dataset.shuffle(100, seed=SEED)
+    dataset = dataset.shuffle(50, seed=SEED)
     # clac step for per epoch
     step_for_epoch = int(len(labelist)/batchsize)
     return dataset, step_for_epoch
