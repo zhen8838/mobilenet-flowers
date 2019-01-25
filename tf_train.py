@@ -44,23 +44,37 @@ def restore_ckpt(sess: tf.Session, ckptpath: str):
 
 
 if __name__ == "__main__":
-    depth_multiplier = 1.0
-    learning_rate = 0.0005
+    # =========== define the hyperparamter===================
+    # NOTE depth_multiplier can set to 0.5,0.75,1.0
+    depth_multiplier = 0.5
+    init_learning_rate = 0.0005
+    # ===================== end =============================
 
     # generate the data
     namelist, labellist = get_filelist(TRAIN_PATH)
-    dataset, epochstep = create_dataset(namelist, labellist, 8, parser)
+    dataset, epochstep = create_dataset(namelist, labellist, BATCH_SIZE, parser)
     next_img, next_label = create_iter(dataset)
     # define the model
     predict, endpoints = new_mobilenet(next_img, CLASS_NUM, depth_multiplier, is_training=True)
     # define loss
     loss = tf.losses.softmax_cross_entropy(next_label, predict)
+
+    # =========== define the hyperparamter===================
+    # todo 增加学习率递减
+    epoch = 5
+    global_steps = epoch * epochstep
+    learn_decay_rate = 0.85
+    decay_steps = 100
+    step_cnt = tf.Variable(0, trainable=False)
+    # ===================== end =============================
+
     # define train optimizer
-    train_op = tf.train.AdamOptimizer(learning_rate=0.0007).minimize(loss)
+    current_learning_rate = tf.train.exponential_decay(init_learning_rate, step_cnt, decay_steps, learn_decay_rate, staircase=False)
+
+    train_op = tf.train.AdamOptimizer(learning_rate=current_learning_rate).minimize(loss, global_step=step_cnt)
     # calc the accuracy
     accuracy, accuracy_op = tf.metrics.accuracy(tf.argmax(next_label, axis=-1), tf.argmax(predict, axis=-1))
 
-    epoch = 5
     with tf.Session() as sess:
         # init the model and restore the pre-train weight
         sess.run(tf.global_variables_initializer())
@@ -72,16 +86,21 @@ if __name__ == "__main__":
         elif depth_multiplier == 1.0:
             pre_ckpt = PRE_1_0_CKPT
         restore_ckpt(sess, pre_ckpt)
-        # define the log
-        writer = tf.summary.FileWriter(os.path.join(TRAIN_LOG_DIR, '{:2.1f}_{:%d_%H:%M:%S}'.format(depth_multiplier, datetime.now())), graph=sess.graph)
+        # define the log and saver
+        nowtime = datetime.now()
+        saver = tf.train.Saver()
+        writer = tf.summary.FileWriter(os.path.join(TRAIN_LOG_DIR, '{:2.2f}_{:%H:%M:%S}'.format(depth_multiplier, nowtime)), graph=sess.graph)
         tf.summary.scalar('loss', loss)
         tf.summary.scalar('accuracy', accuracy)
+        tf.summary.scalar('leraning rate', current_learning_rate)
         merged = tf.summary.merge_all()
         # 使用进度条库
         for i in range(epoch):
             with tqdm(total=epochstep, bar_format='{n_fmt}/{total_fmt} |{bar}| {rate_fmt}{postfix}]', unit=' batch', dynamic_ncols=True) as t:
                 for j in range(epochstep):
-                    summary, _, losses, acc, _ = sess.run([merged, train_op, loss, accuracy, accuracy_op])
+                    summary, _, losses, acc, _, lrate = sess.run([merged, train_op, loss, accuracy, accuracy_op, current_learning_rate])
+                    step_cnt = i*epochstep+j
                     writer.add_summary(summary, i*epochstep+j)
-                    t.set_postfix(loss='{:<5.3f}'.format(losses), acc='{:5.2f}%'.format(acc*100))  # 修改此处添加后缀
+                    t.set_postfix(loss='{:<5.3f}'.format(losses), acc='{:5.2f}%'.format(acc*100), leraning_rate='{:7f}'.format(lrate))  # 修改此处添加后缀
                     t.update()
+        saver.save(sess, os.path.join(TRAIN_LOG_DIR, '{:2.2f}_{:%H:%M:%S}/final.ckpt'.format(depth_multiplier, nowtime)))

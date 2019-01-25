@@ -41,7 +41,7 @@ def create_dataset(namelist, labelist, batchsize, parserfn):
     # shuffle
     dataset = dataset.shuffle(100, seed=SEED)
     # clac step for per epoch
-    step_for_epoch = int(len(labelist)/BATCH_SIZE)
+    step_for_epoch = int(len(labelist)/batchsize)
     return dataset, step_for_epoch
 
 
