@@ -49,6 +49,7 @@ if __name__ == "__main__":
     with tf.Session() as sess:
         # init the model and restore the pre-train weight
         sess.run(tf.global_variables_initializer())
+        sess.run(tf.local_variables_initializer())  # NOTE the accuracy must init local variable
         variables_to_restore = slim.get_model_variables()
         loader = tf.train.Saver([var for var in variables_to_restore if 'MobilenetV1' in var.name])
         loader.restore(sess, PRE_CKPT)
@@ -57,11 +58,11 @@ if __name__ == "__main__":
         tf.summary.scalar('loss', loss)
         tf.summary.scalar('accuracy', accuracy)
         merged = tf.summary.merge_all()
-
+        # 使用进度条库
         for i in range(epoch):
             with tqdm(total=epochstep, bar_format='{n_fmt}/{total_fmt} |{bar}| {rate_fmt}{postfix}]', unit=' batch', dynamic_ncols=True) as t:
                 for j in range(epochstep):
                     summary, _, losses, acc, _ = sess.run([merged, train_op, loss, accuracy, accuracy_op])
                     writer.add_summary(summary, i*epochstep+j)
-                    t.set_postfix(loss='{:^6.3f}'.format(losses), acc='{:^5.2}%'.format(acc))
+                    t.set_postfix(loss='{:^6.3f}'.format(losses), acc='{:^5.2}%'.format(acc))  # 修改此处添加后缀
                     t.update()
