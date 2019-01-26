@@ -9,9 +9,11 @@ import numpy as np
 def parser(filename, label, is_training):
     # with tf.gfile.GFile(filename, 'rb') as f:
     img = tf.read_file(filename)  # f.read()
-    img = tf.image.decode_image(img, channels=3)
+    img = tf.image.decode_jpeg(img, channels=3)
     # NOTE the inception_preprocessing will convert image scale to [-1,1]
-    img_resized = inception_preprocessing.preprocess_image(img, 224, 224, is_training=is_training)
+
+    img_resized = inception_preprocessing.preprocess_image(img, 224, 224, is_training=is_training,
+                                                           add_image_summaries=False)
 
     one_hot_label = tf.one_hot(label, CLASS_NUM, 1, 0)
     # NOTE label should expand axis
@@ -33,8 +35,8 @@ def create_dataset(namelist, labelist, batchsize, parserfn, is_training=True):
     # create the dataset from the list
     dataset = tf.data.Dataset.from_tensor_slices((tf.constant(namelist), tf.constant(labelist)))
     # parser the data set
-    dataset = dataset.apply(tf.data.experimental.map_and_batch(map_func=lambda filename, label: parser(filename, label, is_training),
-                                                               batch_size=batchsize))
+    dataset = dataset.map(map_func=lambda filename, label:  parser(filename, label, is_training), num_parallel_calls=4)
+    dataset.batch(batchsize)
     # repeat
     dataset = dataset.repeat()
     # shuffle
