@@ -17,7 +17,7 @@ if __name__ == "__main__":
     tf.reset_default_graph()
     # =========== define the ckpt path===================
     # NOTE modfiy to your path
-    RESTORE_CKPT_PATH = 'log/train/save_16:15:42'
+    RESTORE_CKPT_PATH = 'log/train/save_18:40:14'
     TEST_IMG_NUM = 100
     # ===================== end =============================
     namelist, labellist = get_filelist(TEST_PATH)
@@ -27,7 +27,7 @@ if __name__ == "__main__":
     with tf.Session() as sess:
         # load the model~
         g = tf.get_default_graph()
-        tf.saved_model.loader.load(sess, ["serve"], 'log/train/save_16:15:42')
+        tf.saved_model.loader.load(sess, ["serve"], RESTORE_CKPT_PATH)
         # get output tensor
         predict = g.get_tensor_by_name('Output_label:0')
         batch_label = tf.placeholder(tf.float32, shape=[None, 1, 1, 5])

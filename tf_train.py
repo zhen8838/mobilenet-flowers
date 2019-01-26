@@ -67,7 +67,7 @@ if __name__ == "__main__":
     total_loss = tf.losses.get_total_loss(name='total_loss')  # NOTE add this can use in test
     # =========== define the hyperparamter===================
     # todo 增加学习率递减
-    epoch = 1
+    epoch = 5
     learn_decay_rate = 0.85
     decay_steps = 50
     # step_cnt = tf.Variable(0, trainable=False)
