@@ -52,15 +52,15 @@ if __name__ == "__main__":
 
     # generate the data
     namelist, labellist = get_filelist(TRAIN_PATH)
-    dataset, epochstep = create_dataset(namelist, labellist, BATCH_SIZE, parser)
+    dataset, epochstep = create_dataset(namelist, labellist, BATCH_SIZE)
     next_img, next_label = create_iter(dataset)
     # define the model
     # NOTE add placeholder_with_default node for test
-    batch_image = tf.placeholder_with_default(next_img, shape=[None, 224, 224, 3], name='Input')
-    predict, endpoints = new_mobilenet(next_img, CLASS_NUM, depth_multiplier, is_training=True)
-    batch_pred = tf.placeholder_with_default(predict, shape=[None, 1, 1, 5], name='Output')
+    batch_image = tf.placeholder_with_default(next_img, shape=[None, 224, 224, 3], name='Input_image')
+    batch_label = tf.placeholder_with_default(next_label, shape=[None, 1, 1, 5], name='Input_label')
+    predict, endpoints = new_mobilenet(batch_image, CLASS_NUM, depth_multiplier, is_training=True)
     # define loss
-    tf.losses.softmax_cross_entropy(next_label, batch_pred)
+    tf.losses.softmax_cross_entropy(batch_label, predict)
     total_loss = tf.losses.get_total_loss(name='total_loss')  # NOTE add this can use in test
     # =========== define the hyperparamter===================
     # todo 增加学习率递减
@@ -76,7 +76,7 @@ if __name__ == "__main__":
 
     train_op = tf.train.AdamOptimizer(learning_rate=current_learning_rate).minimize(total_loss, global_step=total_step)
     # calc the accuracy
-    accuracy, accuracy_op = tf.metrics.accuracy(tf.argmax(next_label, axis=-1), tf.argmax(batch_pred, axis=-1), name='clac_acc')
+    accuracy, accuracy_op = tf.metrics.accuracy(tf.argmax(batch_label, axis=-1), tf.argmax(predict, axis=-1), name='clac_acc')
 
     with tf.Session() as sess:
         # init the model and restore the pre-train weight

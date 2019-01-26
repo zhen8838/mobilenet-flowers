@@ -31,12 +31,13 @@ def get_filelist(fliepath):
     return name_list, label_list
 
 
-def create_dataset(namelist, labelist, batchsize, parserfn, is_training=True):
+def create_dataset(namelist, labelist, batchsize, is_training=True):
     # create the dataset from the list
     dataset = tf.data.Dataset.from_tensor_slices((tf.constant(namelist), tf.constant(labelist)))
     # parser the data set
-    dataset = dataset.map(map_func=lambda filename, label:  parser(filename, label, is_training), num_parallel_calls=4)
-    dataset.batch(batchsize)
+    dataset = dataset.apply(tf.data.experimental.map_and_batch(map_func=lambda filename, label:
+                                                               parser(filename, label, is_training),
+                                                               batch_size=batchsize))
     # repeat
     dataset = dataset.repeat()
     # shuffle
