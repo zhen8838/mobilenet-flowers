@@ -29,7 +29,7 @@ if __name__ == "__main__":
         saver = tf.train.import_meta_graph(os.path.join(RESTORE_CKPT_PATH, 'final.ckpt') + '.meta')   # 载入图结构，保存在.meta文件中
         # restore the graph and weight
         saver.restore(sess, os.path.join(RESTORE_CKPT_PATH, 'final.ckpt'))
-
+        # todo 增加数据输入的操作!!!!
         # define loss and acc
         accuracy, accuracy_op = tf.metrics.accuracy(tf.argmax(next_label, axis=-1), tf.argmax(predict, axis=-1))
         loss = tf.losses.softmax_cross_entropy(next_label, predict)
