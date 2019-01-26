@@ -9,6 +9,7 @@ from nets.mobilenet_v1 import *
 from load_data import *
 from tqdm import tqdm
 from datetime import datetime
+from skimage.io import imshow, show
 
 
 def new_mobilenet(images: tf.Tensor, num_classes: int, depth_multiplier: float, is_training: bool):
@@ -33,8 +34,9 @@ def new_mobilenet(images: tf.Tensor, num_classes: int, depth_multiplier: float, 
                 nets = slim.batch_norm(nets)
                 # nets = [?,1,1,128]
                 nets = slim.conv2d(nets, 5, (1, 1), activation_fn=None)
-                logits = tf.contrib.layers.softmax(nets)
-    return logits, endpoints
+                # nets = [?,1,1,5]
+                # tf.contrib.layers.softmax(nets)
+    return nets, endpoints
 
 
 def restore_ckpt(sess: tf.Session, ckptpath: str):
@@ -58,13 +60,14 @@ if __name__ == "__main__":
     # NOTE add placeholder_with_default node for test
     batch_image = tf.placeholder_with_default(next_img, shape=[None, 224, 224, 3], name='Input_image')
     batch_label = tf.placeholder_with_default(next_label, shape=[None, 1, 1, 5], name='Input_label')
-    predict, endpoints = new_mobilenet(batch_image, CLASS_NUM, depth_multiplier, is_training=True)
+    nets, endpoints = new_mobilenet(batch_image, CLASS_NUM, depth_multiplier, is_training=True)
+    predict = tf.identity(nets, name='Output_label')
     # define loss
-    tf.losses.softmax_cross_entropy(batch_label, predict)
+    tf.losses.softmax_cross_entropy(batch_label, predict)  # NOTE predict can't be softmax
     total_loss = tf.losses.get_total_loss(name='total_loss')  # NOTE add this can use in test
     # =========== define the hyperparamter===================
     # todo 增加学习率递减
-    epoch = 5
+    epoch = 1
     learn_decay_rate = 0.85
     decay_steps = 50
     # step_cnt = tf.Variable(0, trainable=False)
@@ -108,6 +111,8 @@ if __name__ == "__main__":
                     summary, _, losses, acc, _, lrate, step_cnt = sess.run([merged, train_op, total_loss, accuracy, accuracy_op,
                                                                             current_learning_rate, total_step])
                     writer.add_summary(summary, step_cnt)
-                    t.set_postfix(loss='{:<5.3f}'.format(losses), acc='{:5.2f}%'.format(acc*100), leraning_rate='{:7f}'.format(lrate))  # 修改此处添加后缀
+                    t.set_postfix(loss='{:<5.3f}'.format(losses), acc='{:5.2f}%'.format(acc*100), leraning_rate='{:7f}'.format(lrate))
                     t.update()
-        saver.save(sess, os.path.join(TRAIN_LOG_DIR, '{:2.2f}_{:%H:%M:%S}/final.ckpt'.format(depth_multiplier, nowtime)))
+        tf.saved_model.simple_save(sess, os.path.join(TRAIN_LOG_DIR, 'save_{:%H:%M:%S}'.format(nowtime)),
+                                   inputs={'Input_image': batch_image, 'Input_label': batch_label},
+                                   outputs={'Output_label': predict})

@@ -35,9 +35,12 @@ def create_dataset(namelist, labelist, batchsize, is_training=True):
     # create the dataset from the list
     dataset = tf.data.Dataset.from_tensor_slices((tf.constant(namelist), tf.constant(labelist)))
     # parser the data set
-    dataset = dataset.apply(tf.data.experimental.map_and_batch(map_func=lambda filename, label:
-                                                               parser(filename, label, is_training),
-                                                               batch_size=batchsize))
+    dataset = dataset.apply(tf.data.experimental.map_and_batch(
+        map_func=lambda filename, label:
+        parser(filename, label, is_training),
+        batch_size=batchsize,
+        # add drop_remainder avoid output shape less than batchsize
+        drop_remainder=True))
     # repeat
     dataset = dataset.repeat()
     # shuffle
