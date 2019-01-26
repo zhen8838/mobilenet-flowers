@@ -47,7 +47,7 @@ if __name__ == "__main__":
     # =========== define the hyperparamter===================
     # NOTE depth_multiplier can set to 0.5,0.75,1.0
     depth_multiplier = 0.5
-    init_learning_rate = 0.0005
+    init_learning_rate = 0.0006
     # ===================== end =============================
 
     # generate the data
@@ -65,9 +65,8 @@ if __name__ == "__main__":
     # =========== define the hyperparamter===================
     # todo 增加学习率递减
     epoch = 5
-    global_steps = epoch * epochstep
     learn_decay_rate = 0.85
-    decay_steps = 100
+    decay_steps = 50
     # step_cnt = tf.Variable(0, trainable=False)
     total_step = tf.train.create_global_step()
     # ===================== end =============================
@@ -97,6 +96,10 @@ if __name__ == "__main__":
         tf.summary.scalar('loss', total_loss)
         tf.summary.scalar('accuracy', accuracy)
         tf.summary.scalar('leraning rate', current_learning_rate)
+        tf.summary.scalar('depth multiplier', depth_multiplier)
+        tf.summary.scalar('init learning rate', init_learning_rate)
+        tf.summary.scalar('learn decay rate', learn_decay_rate)
+        tf.summary.scalar('decay steps', decay_steps)
         merged = tf.summary.merge_all()
         # 使用进度条库
         for i in range(epoch):
