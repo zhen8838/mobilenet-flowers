@@ -6,7 +6,7 @@ from Globals import *
 import tensorflow as tf
 from tensorflow.contrib import slim
 from nets.mobilenet_v1 import *
-from load_data import *
+from utils import *
 from tqdm import tqdm
 from datetime import datetime
 from sklearn.metrics import accuracy_score
@@ -29,6 +29,7 @@ if __name__ == "__main__":
         g = tf.get_default_graph()
         tf.saved_model.loader.load(sess, ["serve"], RESTORE_CKPT_PATH)
         # get output tensor
+        inputimage = g.get_tensor_by_name('Input_image:0')
         predict = g.get_tensor_by_name('Output_label:0')
         batch_label = tf.placeholder(tf.float32, shape=[None, 1, 1, 5])
         # clac the loss and acc
@@ -40,6 +41,6 @@ if __name__ == "__main__":
         with tqdm(total=TEST_IMG_NUM, bar_format='{n_fmt}/{total_fmt} |{bar}| {rate_fmt}{postfix}]', unit=' batch', dynamic_ncols=True) as t:
             for j in range(TEST_IMG_NUM):
                 img, label = sess.run([next_img, next_label])
-                pred, acc, los, _ = sess.run([predict, accuracy, total_loss, accuracy_op], feed_dict={'Input_image:0': img, batch_label: label})  # type:np.ndarray
+                pred, acc, los, _ = sess.run([predict, accuracy, total_loss, accuracy_op], feed_dict={inputimage: img, batch_label: label})  # type:np.ndarray
                 t.set_postfix(loss='{:<5.3f}'.format(los), acc='{:5.2f}%'.format(acc*100))
                 t.update()
