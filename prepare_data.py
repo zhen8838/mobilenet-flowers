@@ -6,24 +6,24 @@ import csv
 
 
 # get the classes name
-def get_class():
-    classnum = [classname for classname in os.listdir(args.data_dir) if os.path.isdir(os.path.join(args.data_dir, classname))]
+def get_class(data_dir):
+    classnum = [classname for classname in os.listdir(data_dir) if os.path.isdir(os.path.join(data_dir, classname))]
     classnum.sort()
     return classnum
 
 
 # write to the file
-def write_label(classes):
-    with open(os.path.join(args.data_dir, 'Label.csv'), 'w') as lf:
+def write_label(data_dir, classes):
+    with open(os.path.join(data_dir, 'Label.csv'), 'w') as lf:
         for i, name in enumerate(classes):
             lf.write(str(i)+','+name+'\n')
 
 
 # get the all image path and the
-def get_all_path(classes):
+def get_all_path(data_dir, classes):
     dataset = []
     for i, labelname in enumerate(classes):
-        imagelist = [args.data_dir+'/'+labelname+'/'+imagename for imagename in os.listdir(os.path.join(args.data_dir, labelname))]
+        imagelist = [data_dir+'/'+labelname+'/'+imagename for imagename in os.listdir(os.path.join(data_dir, labelname))]
         pairlist = list(zip(imagelist, [str(i) for j in range(len(imagelist))]))
         dataset.extend(pairlist)
     return dataset
@@ -41,21 +41,21 @@ def split_pathlist(dataset):
     return traindata, testdata
 
 
-def write_path(train, test):
-    with open(os.path.join(args.data_dir, 'test.csv'), 'w') as f:
+def write_path(train, test, data_dir):
+    with open(os.path.join(data_dir, 'test.csv'), 'w') as f:
         for it in test:
             f.write(it[0]+','+it[1]+'\n')
-    with open(os.path.join(args.data_dir, 'train.csv'), 'w') as f:
+    with open(os.path.join(data_dir, 'train.csv'), 'w') as f:
         for it in train:
             f.write(it[0]+','+it[1]+'\n')
 
 
-def mian(args):
-    classes = get_class()
-    dataset = get_all_path(classes)
+def main(args):
+    classes = get_class(args.data_path)
+    dataset = get_all_path(args.data_path, classes)
     train, test = split_pathlist(dataset)
-    write_label(classes)
-    write_path(train, test)
+    write_label(args.data_path, classes)
+    write_path(train, test, args.data_path)
 
 
 def parse_arguments(argv):
