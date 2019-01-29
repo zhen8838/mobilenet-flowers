@@ -1,4 +1,3 @@
-from Globals import TRAIN_PATH, TEST_PATH, LABEL_PATH, BATCH_SIZE, CLASS_NUM, SEED
 import csv
 import tensorflow as tf
 from preprocessing import inception_preprocessing
@@ -6,21 +5,20 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def parser(filename, label, is_training):
+def parser(filename, label, class_num, height, witdh, is_training):
     # with tf.gfile.GFile(filename, 'rb') as f:
     img = tf.read_file(filename)  # f.read()
     img = tf.image.decode_jpeg(img, channels=3)
+
+    img_resized = inception_preprocessing.preprocess_image(
+        img, height, witdh, is_training=is_training,
+        add_image_summaries=False)
     # NOTE the inception_preprocessing will convert image scale to [-1,1]
 
-    img_resized = inception_preprocessing.preprocess_image(img, 240, 320, is_training=is_training,
-                                                           add_image_summaries=False)
-
-    one_hot_label = tf.one_hot(label, CLASS_NUM, 1, 0)
-    # one_hot_label = [5]
+    one_hot_label = tf.one_hot(label, class_num, 1, 0)
     one_hot_label = one_hot_label[tf.newaxis, tf.newaxis, :]
     net_label = tf.tile(one_hot_label, [4, 6, 1])
     # NOTE 匹配网络输出,只有(0,0)有效
-
     return img_resized, net_label
 
 
@@ -34,18 +32,20 @@ def get_filelist(fliepath):
     return name_list, label_list
 
 
-def create_dataset(namelist, labelist, batchsize, is_training=True):
+def create_dataset(namelist: list, labelist: list, batchsize: int, class_num: int,
+                   height: int, witdh: int, seed: int, is_training=True):
     # create the dataset from the list
     dataset = tf.data.Dataset.from_tensor_slices((tf.constant(namelist), tf.constant(labelist)))
     # parser the data set
     dataset = dataset.apply(tf.data.experimental.map_and_batch(
         map_func=lambda filename, label:
-        parser(filename, label, is_training),
+        parser(filename, label, class_num,
+               height, witdh, is_training),
         batch_size=batchsize,
         # add drop_remainder avoid output shape less than batchsize
         drop_remainder=True))
     # shuffle and repeat
-    dataset = dataset.apply(tf.data.experimental.shuffle_and_repeat(50, seed=SEED))
+    dataset = dataset.apply(tf.data.experimental.shuffle_and_repeat(50, None, seed=seed))
     # clac step for per epoch
     step_for_epoch = int(len(labelist)/batchsize)
     return dataset, step_for_epoch

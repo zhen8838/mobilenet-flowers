@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 from preprocessing import inception_preprocessing
 import sys
 import argparse
-from Globals import *
 import tensorflow as tf
 from tensorflow.contrib import slim
 from nets.mobilenet_v1 import *
@@ -56,7 +55,7 @@ def main(args):
     tf.random.set_random_seed(args.seed)
     # generate the data
     namelist, labellist = get_filelist(args.data_path)
-    dataset, epochstep = create_dataset(namelist, labellist, args.batch_size)
+    dataset, epochstep = create_dataset(namelist, labellist, args.batch_size, args.class_num, 240, 320, args.seed)
     next_img, next_label = create_iter(dataset)
     # define the model
     # NOTE add placeholder_with_default node for test
@@ -140,7 +139,7 @@ def parse_arguments(argv):
 
     parser.add_argument('--init_learning_rate', type=float,
                         help='Initial learning rate. If set to a negative value a learning rate ' +
-                        'schedule can be specified in the file "learning_rate_schedule.txt"', default=0.0006)
+                        'schedule can be specified in the file "learning_rate_schedule.txt"', default=0.0008)
 
     parser.add_argument('--learning_rate_decay_epochs', type=int,
                         help='Number of epochs between learning rate decay.', default=10)
