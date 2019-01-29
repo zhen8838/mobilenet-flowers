@@ -6,7 +6,9 @@ import csv
 
 # get the classes name
 def get_class():
-    return [classname for classname in os.listdir(DATA_DIR) if os.path.isdir(os.path.join(DATA_DIR, classname))]
+    classnum = [classname for classname in os.listdir(DATA_DIR) if os.path.isdir(os.path.join(DATA_DIR, classname))]
+    classnum.sort()
+    return classnum
 
 
 # write to the file
