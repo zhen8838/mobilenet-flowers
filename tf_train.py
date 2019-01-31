@@ -1,12 +1,12 @@
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-from preprocessing import inception_preprocessing
+import inception_preprocessing
 import sys
 import argparse
 import tensorflow as tf
 from tensorflow.contrib import slim
-from nets.mobilenet_v1 import *
+from models.mobilenet_flowers import *
 from utils import *
 from tqdm import tqdm
 from datetime import datetime
@@ -16,33 +16,6 @@ from skimage.io import imshow, show
 PRE_0_5_CKPT = 'mobilenet_v1_0.5_224/mobilenet_v1_0.5_224.ckpt'
 PRE_0_75_CKPT = 'mobilenet_v1_0.75_224/mobilenet_v1_0.75_224.ckpt'
 PRE_1_0_CKPT = 'mobilenet_v1_1.0_224/mobilenet_v1_1.0_224.ckpt'
-
-
-def new_mobilenet(images: tf.Tensor, num_classes: int, depth_multiplier: float, is_training: bool):
-    with slim.arg_scope(mobilenet_v1_arg_scope(is_training=is_training)):
-        nets, endpoints = mobilenet_v1_base(images, depth_multiplier=depth_multiplier)
-
-    # add the new layer
-    with tf.variable_scope('Flowers'):
-        with slim.arg_scope([slim.conv2d],  padding='VALID', activation_fn=None, weights_initializer=slim.initializers.xavier_initializer_conv2d()):
-            with slim.arg_scope([slim.batch_norm], activation_fn=tf.nn.relu6,  center=True, scale=True, decay=0.9997, epsilon=0.001):
-                if depth_multiplier == 1.0 or depth_multiplier == 0.75:
-                    # nets= [?,8,10,1024]
-                    nets = slim.conv2d(nets, 512, (3, 3), padding='SAME')
-                    nets = slim.batch_norm(nets)
-                else:
-                    pass
-                # nets=(?, 8, 10, 512)
-                nets = slim.conv2d(nets, 256, (3, 3))
-                nets = slim.batch_norm(nets)
-                # nets = (?, 6, 8, 256)
-                nets = slim.conv2d(nets, 128, (3, 3))
-                nets = slim.batch_norm(nets)
-                # nets = (?, 4, 6, 128)
-                nets = slim.conv2d(nets, 5, (1, 1), activation_fn=None)
-                # nets = (?, 4, 6, 5)
-                # tf.contrib.layers.softmax(nets)
-    return nets, endpoints
 
 
 def restore_ckpt(sess: tf.Session, ckptpath: str):
@@ -60,9 +33,9 @@ def main(args):
     # define the model
     # NOTE add placeholder_with_default node for test
     batch_image = tf.placeholder_with_default(next_img, shape=[None, 240, 320, 3], name='Input_image')
-    batch_label = tf.placeholder_with_default(next_label, shape=[None, 4, 6, 5], name='Input_label')
+    batch_label = tf.placeholder_with_default(next_label, shape=[None, 1, 1, 5], name='Input_label')
     true_label = batch_label[:, 0, 0, :]
-    nets, endpoints = new_mobilenet(batch_image, args.class_num, args.depth_multiplier, is_training=True)
+    nets, endpoints = mobilenet_conv(batch_image, args.class_num, args.depth_multiplier, is_training=True)
     logits = nets[:, 0, 0, :]
     predict = tf.identity(logits, name='Output_label')
     # define loss
@@ -75,8 +48,8 @@ def main(args):
     # ===================== end =============================
 
     # define train optimizer
-    current_learning_rate = tf.train.exponential_decay(args.init_learning_rate, global_steps, args.learning_rate_decay_epochs*args.max_nrof_epochs,
-                                                       args.learning_rate_decay_factor, staircase=True)
+    current_learning_rate = tf.train.exponential_decay(args.init_learning_rate, global_steps, epochstep // args.learning_rate_decay_epochs,
+                                                       args.learning_rate_decay_factor, staircase=False)
 
     train_op = tf.train.AdamOptimizer(learning_rate=current_learning_rate).minimize(total_loss, global_step=global_steps)
     # calc the accuracy
@@ -109,9 +82,11 @@ def main(args):
                     summary, _, losses, acc, _, lrate, step_cnt = sess.run([merged, train_op, total_loss, accuracy, accuracy_op,
                                                                             current_learning_rate, global_steps])
                     writer.add_summary(summary, step_cnt)
-                    t.set_postfix(loss='{:<5.3f}'.format(losses), acc='{:5.2f}%'.format(acc*100), leraning_rate='{:7f}'.format(lrate))
+                    t.set_postfix(loss='{:<5.3f}'.format(losses), acc='{:5.2f}%'.format(acc*100), lr='{:7f}'.format(lrate))
                     t.update()
         saver.save(sess, save_path=os.path.join(subdir, 'model.ckpt'), global_step=global_steps)
+        with open('ckptpath.list', 'w') as f:
+            f.write(subdir+'\n')
 
 
 def parse_arguments(argv):
@@ -139,10 +114,10 @@ def parse_arguments(argv):
 
     parser.add_argument('--init_learning_rate', type=float,
                         help='Initial learning rate. If set to a negative value a learning rate ' +
-                        'schedule can be specified in the file "learning_rate_schedule.txt"', default=0.0008)
+                        'schedule can be specified in the file "learning_rate_schedule.txt"', default=0.0006)
 
     parser.add_argument('--learning_rate_decay_epochs', type=int,
-                        help='Number of epochs between learning rate decay.', default=10)
+                        help='Number of epochs between learning rate decay.', default=1)
 
     parser.add_argument('--learning_rate_decay_factor', type=float,
                         help='Learning rate decay factor.', default=0.9)

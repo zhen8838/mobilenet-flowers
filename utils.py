@@ -17,9 +17,8 @@ def parser(filename, label, class_num, height, witdh, is_training):
 
     one_hot_label = tf.one_hot(label, class_num, 1, 0)
     one_hot_label = one_hot_label[tf.newaxis, tf.newaxis, :]
-    net_label = tf.tile(one_hot_label, [4, 6, 1])
     # NOTE 匹配网络输出,只有(0,0)有效
-    return img_resized, net_label
+    return img_resized, one_hot_label
 
 
 def get_filelist(fliepath):
